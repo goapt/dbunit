@@ -62,7 +62,7 @@ func TestRun(t *testing.T) {
 			if err != sql.ErrNoRows {
 				t.Fatal(err)
 			}
-		}, "testdata/fixtures/actions.yml", "testdata/fixtures/shares.yml")
+		}, "testdata/fixtures/members.yml", "testdata/fixtures/documents.yml")
 	})
 
 	t.Run("custom fixtures", func(t *testing.T) {
