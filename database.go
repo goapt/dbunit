@@ -20,6 +20,10 @@ func init() {
 	if os.Getenv("DRONE") == "true" {
 		SetDatabase("root:123456@tcp(database:3306)/")
 	}
+
+	if os.Getenv("CI") == "true" {
+		SetDatabase("root:root@tcp(127.0.0.1:3306)/")
+	}
 }
 
 // SetDatabase 配置单元测试的数据库DSN
