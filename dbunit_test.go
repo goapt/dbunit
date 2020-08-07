@@ -68,16 +68,16 @@ func TestRun(t *testing.T) {
 	t.Run("custom fixtures", func(t *testing.T) {
 		Run(t, "testdata/schema.sql", func(t *testing.T, db *gosql.DB) {
 			var ct int
-			err := db.QueryRowx("select count(1) from wx__user").Scan(&ct)
+			err := db.QueryRowx("select count(1) from custom").Scan(&ct)
 
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			if ct == 0 {
-				t.Fatalf("wx_user mismatch want %s,but get %d", " > 0", ct)
+				t.Fatalf("user mismatch want %s,but get %d", " > 0", ct)
 			}
-		}, "testdata/inter")
+		}, "testdata/custom")
 	})
 }
 
