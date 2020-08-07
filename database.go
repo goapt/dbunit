@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	defaultTestDSN         = "root:@tcp(10.64.144.156:3306)/"
+	defaultTestDSN         = "root:@tcp(127.0.0.1:3306)/"
 	createTableRegex       = regexp.MustCompile(`(?isU)CREATE TABLE\s+.*;`)
 	id               int32 = 0
 )
