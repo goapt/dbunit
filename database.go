@@ -83,6 +83,7 @@ func (d *database) Drop() error {
 	if err != nil {
 		return err
 	}
+	d.db.Close()
 	return nil
 }
 
