@@ -1,9 +1,33 @@
 package dbunit
 
 import (
+	"io/ioutil"
 	"os"
 	"reflect"
+
+	"gopkg.in/yaml.v2"
+
+	"git.verystar.cn/gopkg/dbunit/fixtures"
 )
+
+func PluckWithFixture(filePath string, key string) []interface{} {
+	var data = make([]map[string]interface{}, 0)
+	if !isExists(filePath) {
+		panic("file not exists:" + filePath)
+	}
+	d, _ := ioutil.ReadFile(filePath)
+	tpl := fixtures.NewTemplate()
+	d, err := tpl.Parse(d)
+	if err != nil {
+		panic(err)
+	}
+	err = yaml.Unmarshal(d, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	return Pluck(data, key)
+}
 
 func Pluck(data []map[string]interface{}, key string) []interface{} {
 	s := make([]interface{}, len(data))

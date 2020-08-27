@@ -1,7 +1,6 @@
 package fixtures
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"text/template"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -25,19 +23,7 @@ type Loader struct {
 	skipTestDatabaseCheck bool
 	location              *time.Location
 
-	template           bool
-	templateFuncs      template.FuncMap
-	templateLeftDelim  string
-	templateRightDelim string
-	templateOptions    []string
-	templateData       interface{}
-}
-
-type fixtureFile struct {
-	path      string
-	fileName  string
-	content   []byte
-	insertSQL insertSQL
+	template *Template
 }
 
 type insertSQL struct {
@@ -54,9 +40,8 @@ var (
 // options are required.
 func New(options ...func(*Loader) error) (*Loader, error) {
 	l := &Loader{
-		templateLeftDelim:  "{{",
-		templateRightDelim: "}}",
-		templateOptions:    []string{"missingkey=zero"},
+		template: NewTemplate(),
+		helper:   &mySQL{},
 	}
 
 	for _, option := range options {
@@ -69,19 +54,11 @@ func New(options ...func(*Loader) error) (*Loader, error) {
 		return nil, errDatabaseIsRequired
 	}
 
-	l.helper = &mySQL{}
-
 	if err := l.helper.init(l.db); err != nil {
 		return nil, err
 	}
 	if err := l.buildInsertSQLs(); err != nil {
 		return nil, err
-	}
-
-	l.templateFuncs = make(template.FuncMap)
-	l.templateFuncs["now"] = func() string {
-		layout := "2006-01-02 13:04:05"
-		return time.Now().Format(layout)
 	}
 
 	return l, nil
@@ -128,83 +105,6 @@ func Location(location *time.Location) func(*Loader) error {
 	}
 }
 
-// Template makes loader process each YAML file as an template using the
-// text/template package.
-//
-// For more information on how templates work in Go please read:
-// https://golang.org/pkg/text/template/
-//
-// If not given the YAML files are parsed as is.
-func Template() func(*Loader) error {
-	return func(l *Loader) error {
-		l.template = true
-		return nil
-	}
-}
-
-// TemplateFuncs allow choosing which functions will be available
-// when processing templates.
-//
-// For more information see: https://golang.org/pkg/text/template/#Template.Funcs
-func TemplateFuncs(funcs template.FuncMap) func(*Loader) error {
-	return func(l *Loader) error {
-		if !l.template {
-			return fmt.Errorf(`testfixtures: the Template() options is required in order to use the TemplateFuns() option`)
-		}
-
-		for k, v := range funcs {
-			l.templateFuncs[k] = v
-		}
-		return nil
-	}
-}
-
-// TemplateDelims allow choosing which delimiters will be used for templating.
-// This defaults to "{{" and "}}".
-//
-// For more information see https://golang.org/pkg/text/template/#Template.Delims
-func TemplateDelims(left, right string) func(*Loader) error {
-	return func(l *Loader) error {
-		if !l.template {
-			return fmt.Errorf(`testfixtures: the Template() options is required in order to use the TemplateDelims() option`)
-		}
-
-		l.templateLeftDelim = left
-		l.templateRightDelim = right
-		return nil
-	}
-}
-
-// TemplateOptions allows you to specific which text/template options will
-// be enabled when processing templates.
-//
-// This defaults to "missingkey=zero". Check the available options here:
-// https://golang.org/pkg/text/template/#Template.Option
-func TemplateOptions(options ...string) func(*Loader) error {
-	return func(l *Loader) error {
-		if !l.template {
-			return fmt.Errorf(`testfixtures: the Template() options is required in order to use the TemplateOptions() option`)
-		}
-
-		l.templateOptions = options
-		return nil
-	}
-}
-
-// TemplateData allows you to specify which data will be available
-// when processing templates. Data is accesible by prefixing it with a "."
-// like {{.MyKey}}.
-func TemplateData(data interface{}) func(*Loader) error {
-	return func(l *Loader) error {
-		if !l.template {
-			return fmt.Errorf(`testfixtures: the Template() options is required in order to use the TemplateData() option`)
-		}
-
-		l.templateData = data
-		return nil
-	}
-}
-
 // EnsureTestDatabase returns an error if the database name does not contains
 // "test".
 func (l *Loader) EnsureTestDatabase() error {
@@ -229,7 +129,7 @@ func (l *Loader) Load() error {
 		}
 	}
 
-	l.db.Exec("set @@sql_mode=''")
+	_, _ = l.db.Exec("set @@sql_mode=''")
 
 	err := l.helper.disableReferentialIntegrity(l.db, func(tx *sql.Tx) error {
 		for _, file := range l.fixturesFiles {
@@ -304,7 +204,7 @@ func (l *Loader) buildInsertSQLs() error {
 				k = strings.Trim(k, "`")
 				switch v := record[k].(type) {
 				case string:
-					if t, err := l.tryStrToDate(v); err == nil {
+					if t, err := tryStrToDate(l.location, v); err == nil {
 						record[k] = t
 					}
 				case []interface{}, map[interface{}]interface{}:
@@ -320,36 +220,21 @@ func (l *Loader) buildInsertSQLs() error {
 	return nil
 }
 
-func (f *fixtureFile) fileNameWithoutExtension() string {
-	return strings.Replace(f.fileName, filepath.Ext(f.fileName), "", 1)
-}
-
 func (l *Loader) fixturesFromDir(dir string) ([]*fixtureFile, error) {
 	fileinfos, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf(`testfixtures: could not stat directory "%s": %w`, dir, err)
 	}
 
-	files := make([]*fixtureFile, 0, len(fileinfos))
+	files := make([]string, 0)
 
 	for _, fileinfo := range fileinfos {
 		fileExt := filepath.Ext(fileinfo.Name())
 		if !fileinfo.IsDir() && (fileExt == ".yml" || fileExt == ".yaml") {
-			fixture := &fixtureFile{
-				path:     path.Join(dir, fileinfo.Name()),
-				fileName: fileinfo.Name(),
-			}
-			fixture.content, err = ioutil.ReadFile(fixture.path)
-			if err != nil {
-				return nil, fmt.Errorf(`testfixtures: could not read file "%s": %w`, fixture.path, err)
-			}
-			if err := l.processFileTemplate(fixture); err != nil {
-				return nil, err
-			}
-			files = append(files, fixture)
+			files = append(files, path.Join(dir, fileinfo.Name()))
 		}
 	}
-	return files, nil
+	return l.fixturesFromFiles(files...)
 }
 
 func (l *Loader) fixturesFromFiles(fileNames ...string) ([]*fixtureFile, error) {
@@ -367,34 +252,12 @@ func (l *Loader) fixturesFromFiles(fileNames ...string) ([]*fixtureFile, error) 
 		if err != nil {
 			return nil, fmt.Errorf(`testfixtures: could not read file "%s": %w`, fixture.path, err)
 		}
-		if err := l.processFileTemplate(fixture); err != nil {
-			return nil, err
+		fixture.content, err = l.template.Parse(fixture.content)
+		if err != nil {
+			return nil, fmt.Errorf(`textfixtures: error on parsing template in %s: %w`, fixture.fileName, err)
 		}
 		fixtureFiles = append(fixtureFiles, fixture)
 	}
 
 	return fixtureFiles, nil
-}
-
-func (l *Loader) processFileTemplate(f *fixtureFile) error {
-	if !l.template {
-		return nil
-	}
-
-	t := template.New("").
-		Funcs(l.templateFuncs).
-		Delims(l.templateLeftDelim, l.templateRightDelim).
-		Option(l.templateOptions...)
-	t, err := t.Parse(string(f.content))
-	if err != nil {
-		return fmt.Errorf(`textfixtures: error on parsing template in %s: %w`, f.fileName, err)
-	}
-
-	var buffer bytes.Buffer
-	if err := t.Execute(&buffer, l.templateData); err != nil {
-		return fmt.Errorf(`textfixtures: error on executing template in %s: %w`, f.fileName, err)
-	}
-
-	f.content = buffer.Bytes()
-	return nil
 }

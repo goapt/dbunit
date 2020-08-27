@@ -26,8 +26,7 @@ var timeFormats = [...]string{
 	"2006-01-02 15:04:05 MST",
 }
 
-func (l *Loader) tryStrToDate(s string) (time.Time, error) {
-	loc := l.location
+func tryStrToDate(loc *time.Location, s string) (time.Time, error) {
 	if loc == nil {
 		loc = time.Local
 	}
