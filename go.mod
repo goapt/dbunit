@@ -3,6 +3,7 @@ module github.com/goapt/dbunit
 go 1.14
 
 require (
+	git.verystar.cn/gopkg/dbunit v0.8.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/ilibs/gosql/v2 v2.0.5

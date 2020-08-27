@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"git.verystar.cn/gopkg/dbunit/fixtures"
+	"github.com/goapt/dbunit/fixtures"
 )
 
 func PluckWithFixture(filePath string, key string) []interface{} {
