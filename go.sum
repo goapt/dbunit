@@ -1,6 +1,3 @@
-git.verystar.cn/gopkg/dbunit v0.8.0 h1:XBKO7jC+FQYp0XF7fPlDuuZiq4jycTqN0G2MUzkPmYc=
-git.verystar.cn/gopkg/dbunit v0.8.0/go.mod h1:r666c/ig7STjU1YTMtreSK9EOEjMu7YVaIUjmpuGL3g=
-git.verystar.cn/gopkg/gosql/v2 v2.0.9/go.mod h1:heBrbpoC+nh3dag0VDqfhvZhflkFW/fsdhCaOhhx26o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -8,8 +5,6 @@ github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG
 github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
-github.com/ilibs/gosql/v2 v2.0.4 h1:M0+qBSwbop9u9HyCOtOnS0mmfkinJYjhxDue+kvo4gE=
-github.com/ilibs/gosql/v2 v2.0.4/go.mod h1:kU5sf2paHLCtYaM446ZHYBxwlFo4Kuk/BGrKEJfb7x4=
 github.com/ilibs/gosql/v2 v2.0.5 h1:tn8qCGG4/7YFP5ZctfftcJ9ghJ2oJI5Poehxx039Ct0=
 github.com/ilibs/gosql/v2 v2.0.5/go.mod h1:kU5sf2paHLCtYaM446ZHYBxwlFo4Kuk/BGrKEJfb7x4=
 github.com/jmoiron/sqlx v1.2.0 h1:41Ip0zITnmWNR/vHV+S4m+VoUivnWY5E4OJfLZjCJMA=
@@ -37,6 +32,5 @@ google.golang.org/appengine v1.6.5/go.mod h1:8WjMMxjGQR8xUklV/ARdw2HLXBOI7O7uCID
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
-gopkg.in/yaml.v2 v2.2.8/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.3.0 h1:clyUAQHOM3G0M3f5vQj7LuJrETvjVot3Z5el9nffUtU=
 gopkg.in/yaml.v2 v2.3.0/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
