@@ -12,6 +12,8 @@ import (
 	"github.com/ilibs/gosql/v2"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/yaml.v2"
+
+	"github.com/goapt/dbunit/fixtures"
 )
 
 func parseTableName(query string) string {
@@ -26,14 +28,14 @@ func parseTableName(query string) string {
 	query = query[fromIdex+4:]
 
 	// 查看有没有as
-	asIndex := strings.Index(query, "as")
+	asIndex := strings.Index(query, " as")
 
 	if asIndex != -1 {
 		return strings.Trim(strings.TrimSpace(query[:asIndex]), "`")
 	}
 
 	// 查看有没有where
-	whereIndex := strings.Index(query, "where")
+	whereIndex := strings.Index(query, " where")
 
 	if whereIndex != -1 {
 		query = query[:whereIndex]
@@ -99,13 +101,18 @@ func Dump(db *gosql.DB, filePath, query string, args ...interface{}) ([]map[stri
 		if err != nil {
 			return nil, err
 		}
+		tpl := fixtures.NewTemplate()
+		d, err = tpl.Parse(d)
+		if err != nil {
+			return nil, err
+		}
 		err = yaml.Unmarshal(d, &oldData)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	fixtures := make([]yaml.MapSlice, 0, 10)
+	fixturesSlice := make([]yaml.MapSlice, 0, 10)
 	fixtureMaps := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		entries := make([]interface{}, len(columns))
@@ -129,7 +136,7 @@ func Dump(db *gosql.DB, filePath, query string, args ...interface{}) ([]map[stri
 		}
 
 		if !isDuplicate(oldData, entryMap2, pk) {
-			fixtures = append(fixtures, entryMap)
+			fixturesSlice = append(fixturesSlice, entryMap)
 		} else {
 			fmt.Println(fmt.Sprintf("[duplicate] %s ignore primary key:%v", filePath, entryMap2[pk]))
 		}
@@ -139,11 +146,11 @@ func Dump(db *gosql.DB, filePath, query string, args ...interface{}) ([]map[stri
 		return nil, err
 	}
 
-	if len(fixtures) == 0 && len(oldData) != 0 {
+	if len(fixturesSlice) == 0 && len(oldData) != 0 {
 		return fixtureMaps, nil
 	}
 
-	err = writeYml(filePath, fixtures, len(oldData))
+	err = writeYml(filePath, fixturesSlice, len(oldData))
 	return fixtureMaps, err
 }
 

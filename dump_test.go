@@ -1,19 +1,13 @@
 package dbunit
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ilibs/gosql/v2"
 )
 
 func TestDumpSQL(t *testing.T) {
-	if os.Getenv("DEV_DATABASE_HOST") != "" {
-		db, err := gosql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", os.Getenv("DEV_DATABASE_USERNAME"), os.Getenv("DEV_DATABASE_PASSWORD"), os.Getenv("DEV_DATABASE_HOST"), "example")+"?charset=utf8&parseTime=True&loc=Asia%2FShanghai")
-		if err != nil {
-			t.Fatal("db open error:", err)
-		}
+	Run(t, "testdata/schema.sql", func(t *testing.T, db *gosql.DB) {
 		data, err := Dump(db, "testdata/fixtures/documents.yml", "select * from documents limit 10")
 		if err != nil {
 			t.Fatal("dump documents error:", err)
@@ -30,16 +24,11 @@ func TestDumpSQL(t *testing.T) {
 		if err != nil {
 			t.Fatal("dump users error:", err)
 		}
-	}
+	})
 }
 
 func Test_getPrimaryKey(t *testing.T) {
-	if os.Getenv("DEV_DATABASE_HOST") != "" {
-		db, err := gosql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=%s",
-			os.Getenv("DEV_DATABASE_USERNAME"),
-			os.Getenv("DEV_DATABASE_PASSWORD"),
-			os.Getenv("DEV_DATABASE_HOST"), "example", "Asia%2FShanghai"),
-		)
+	Run(t, "testdata/schema.sql", func(t *testing.T, db *gosql.DB) {
 		pk, err := getPrimaryKey(db, "select * from users limit 1")
 
 		if err != nil {
@@ -49,7 +38,7 @@ func Test_getPrimaryKey(t *testing.T) {
 		if pk != "id" {
 			t.Fatal("getPrimaryKey error must get id")
 		}
-	}
+	})
 
 }
 
@@ -117,6 +106,20 @@ func Test_parseTableName(t *testing.T) {
 				"select * users",
 			},
 			want: "",
+		},
+		{
+			name: "table is task",
+			args: args{
+				"select * from task",
+			},
+			want: "task",
+		},
+		{
+			name: "table is task_push",
+			args: args{
+				"select * from task_push where user_id = 1",
+			},
+			want: "task_push",
 		},
 	}
 	for _, tt := range tests {

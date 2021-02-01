@@ -22,8 +22,25 @@ func NewTemplate() *Template {
 	}
 
 	l.templateFuncs = make(template.FuncMap)
-	l.templateFuncs["now"] = func() string {
-		return time.Now().Format(time.RFC3339)
+	l.templateFuncs["now"] = func(args ...interface{}) string {
+		if len(args) == 0 {
+			return time.Now().Format(time.RFC3339)
+		}
+		num := time.Duration(args[0].(int))
+		unit := args[1].(string)
+
+		var duration time.Duration
+		switch unit {
+		case "day":
+			duration = time.Hour * 24 * num
+		case "minute":
+			duration = time.Minute * num
+		case "second":
+			duration = time.Second * num
+		default:
+			duration = time.Second * num
+		}
+		return time.Now().Add(duration).Format(time.RFC3339)
 	}
 	return l
 }
