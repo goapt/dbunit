@@ -1,13 +1,12 @@
 package dbunit
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
-
-	"github.com/ilibs/gosql/v2"
 )
 
-func Run(t *testing.T, schema string, f func(t *testing.T, db *gosql.DB), fixtures ...string) {
+func Run(t *testing.T, schema string, f func(t *testing.T, db *sql.DB), fixtures ...string) {
 	New(t, func(d *DBUnit) {
 		db := d.NewDatabase(schema, fixtures...)
 		f(t, db)
@@ -18,7 +17,7 @@ type DBUnit struct {
 	tests []*Testing
 }
 
-func (d *DBUnit) NewDatabase(schema string, fixtures ...string) *gosql.DB {
+func (d *DBUnit) NewDatabase(schema string, fixtures ...string) *sql.DB {
 	test := NewTest(schema)
 	if len(fixtures) == 0 {
 		fixtures = append(fixtures, filepath.Join(filepath.Dir(schema), "fixtures"))

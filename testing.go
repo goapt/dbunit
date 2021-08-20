@@ -6,15 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ilibs/gosql/v2"
-
 	"github.com/goapt/dbunit/fixtures"
 )
 
 type Testing struct {
 	tdb    *database
-	db     *gosql.DB
-	sdb    *sql.DB
+	db     *sql.DB
 	schema string
 }
 
@@ -24,22 +21,19 @@ func NewTest(schema string) *Testing {
 	// Open connection to the test database.
 	// Do NOT import fixtures in a production database!
 	// Existing data would be deleted.
-	sdb, err := sql.Open("mysql", tdb.DSN())
+	db, err := sql.Open("mysql", tdb.DSN())
 	if err != nil {
 		panic("test mysql open fail " + err.Error())
 	}
 
-	db := gosql.OpenWithDB("mysql", sdb)
-
 	return &Testing{
 		tdb,
 		db,
-		sdb,
 		schema,
 	}
 }
 
-func (d *Testing) DB() *gosql.DB {
+func (d *Testing) DB() *sql.DB {
 	return d.db
 }
 
@@ -56,7 +50,7 @@ func (d *Testing) Drop() {
 
 func (d *Testing) Load(files ...string) {
 	options := make([]func(*fixtures.Loader) error, 0)
-	options = append(options, fixtures.Database(d.sdb)) // You database connection
+	options = append(options, fixtures.Database(d.db)) // You database connection
 
 	fs := make([]string, 0)
 	for _, file := range files {

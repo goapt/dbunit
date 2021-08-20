@@ -1,19 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/ilibs/gosql/v2"
-
 	"github.com/goapt/dbunit"
 )
 
 func main() {
 	dbname := "example"
 
-	db, err := gosql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=%s",
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8&parseTime=True&loc=%s",
 		os.Getenv("DEV_DATABASE_USERNAME"),
 		os.Getenv("DEV_DATABASE_PASSWORD"),
 		os.Getenv("DEV_DATABASE_HOST"), dbname, "Asia%2FShanghai"),

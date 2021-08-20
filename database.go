@@ -127,19 +127,3 @@ func (d *database) Import(schema string) error {
 	}
 	return nil
 }
-
-// func (d *Database) Import(database, schema string) error {
-// 	if !isExists(schema) {
-// 		return fmt.Errorf("sql file not found:%s", schema)
-// 	}
-// 	// docker exec -i some-mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' < /some/path/on/your/host/all-databases.sql
-// 	command := exec.Command("bash", "-c", fmt.Sprintf(`docker exec -i %s sh -c 'exec mysql -uroot -p"%s" %s' < %s`, "mysql-test", "123456", database, schema))
-// 	result, err := command.CombinedOutput()
-// 	if err != nil {
-// 		fmt.Println(command.String())
-// 		return fmt.Errorf("import schema error:%s %s", string(result), err)
-// 	}
-// 	d.log(fmt.Sprintf("Import schema:%s", schema))
-// 	return nil
-//
-// }

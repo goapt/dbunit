@@ -15,37 +15,28 @@ go get github.com/goapt/dbunit
 1、单数据库自动辅助测试函数
 
 ```go
-dbunit.Run(t, "testdata/schema.sql", func(t *testing.T, db *gosql.DB) {
-    user := &Users{
-        Id: 1,
-    }
-
-    err := db.Model(user).Get()
-
-    if err != nil {
+dbunit.Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+    row := db.QueryRow("select email from users where id = 1")
+    var email string
+    if err := row.Scan(&email); err != nil {
         t.Fatal(err)
     }
-
-    if user.Email != "test@test.cn" {
-        t.Fatalf("user mismatch want %s,but get %s", "test@test.cn", user.Email)
+    
+    if email != "test@test.cn" {
+        t.Fatalf("user mismatch want %s,but get %s", "test@test.cn", email)
     }
 })
 ```
 
 > dbunit.Run 会自动创建数据库，并且自动导入`testdata/fixtures`目录下面的测试数据
 
-2、多数据库调用
+2、多数据库创建
 
 ```go
 dbunit.New(t, func(d *DBUnit) {
     db := d.NewDatabase("testdata/schema.sql","testdata/fixtures/users.yml")
     // more database
     db2 = d.NewDatabase("testdata/schema2.sql")
-    user := &Users{
-        Id: 1,
-    }
-
-    err := db.Model(user).Get()
     .....
 })
 ```
@@ -54,7 +45,7 @@ dbunit.New(t, func(d *DBUnit) {
 
 ### 使用脚本导出数据
 ```go
-db, err := gosql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", os.Getenv("DEV_DATABASE_USERNAME"), os.Getenv("DEV_DATABASE_PASSWORD"), os.Getenv("DEV_DATABASE_HOST"), "example")+"?charset=utf8&parseTime=True&loc=Asia%2FShanghai")
+db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", os.Getenv("DEV_DATABASE_USERNAME"), os.Getenv("DEV_DATABASE_PASSWORD"), os.Getenv("DEV_DATABASE_HOST"), "example")+"?charset=utf8&parseTime=True&loc=Asia%2FShanghai")
 if err != nil {
     t.Fatal("db open error:", err)
 }
@@ -89,6 +80,17 @@ if err != nil {
     panic(err)
 }
 ```
+
+### 和其他ORM配合使用
+
+```go
+dbunit.New(t, func(d *DBUnit) {
+    db := d.NewDatabase("testdata/schema.sql","testdata/fixtures/users.yml")
+
+    gormDB, err := gorm.Open(mysql.New(mysql.Config{Conn: db}))
+})
+```
+
 
 ## 关于fixture
 
