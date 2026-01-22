@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Set up Golang ${{ matrix.go-version }}
-      - uses: actions/setup-go@v5
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
         id: go
