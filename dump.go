@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -98,7 +97,7 @@ func Dump(db *sql.DB, filePath, query string, args ...any) ([]map[string]any, er
 
 	var oldData = make([]map[string]any, 0)
 	if isExists(filePath) {
-		d, err := ioutil.ReadFile(filePath)
+		d, err := os.ReadFile(filePath)
 		if err != nil {
 			return nil, err
 		}

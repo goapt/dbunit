@@ -1,7 +1,6 @@
 package dbunit
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 
@@ -15,7 +14,7 @@ func PluckWithFixture(filePath string, key string) []any {
 	if !isExists(filePath) {
 		panic("file not exists:" + filePath)
 	}
-	d, _ := ioutil.ReadFile(filePath)
+	d, _ := os.ReadFile(filePath)
 	tpl := fixtures.NewTemplate()
 	d, err := tpl.Parse(d)
 	if err != nil {
