@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	testDSN  = "root:@tcp(10.64.144.156:3306)/"
+	testDSN  = "root:123456@tcp(127.0.0.1:3306)/"
 	mysqlDSN = ""
 )
 
@@ -21,7 +21,7 @@ func init() {
 	}
 
 	if os.Getenv("CI") == "true" {
-		testDSN = "root:root@tcp(127.0.0.1:3306)/"
+		testDSN = "root:123456@tcp(127.0.0.1:3306)/"
 	}
 
 	mysqlDSN = fmt.Sprintf("%smysql", testDSN)
