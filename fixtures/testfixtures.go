@@ -3,7 +3,7 @@ package fixtures
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -53,9 +53,6 @@ func New(options ...func(*Loader) error) (*Loader, error) {
 		return nil, errDatabaseIsRequired
 	}
 
-	if err := l.helper.init(l.db); err != nil {
-		return nil, err
-	}
 	if err := l.buildInsertSQLs(); err != nil {
 		return nil, err
 	}
@@ -213,7 +210,7 @@ func (l *Loader) buildInsertSQLs() error {
 }
 
 func (l *Loader) fixturesFromDir(dir string) ([]*fixtureFile, error) {
-	fileinfos, err := ioutil.ReadDir(dir)
+	fileinfos, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf(`testfixtures: could not stat directory "%s": %w`, dir, err)
 	}
@@ -240,7 +237,7 @@ func (l *Loader) fixturesFromFiles(fileNames ...string) ([]*fixtureFile, error) 
 			path:     f,
 			fileName: filepath.Base(f),
 		}
-		fixture.content, err = ioutil.ReadFile(fixture.path)
+		fixture.content, err = os.ReadFile(fixture.path)
 		if err != nil {
 			return nil, fmt.Errorf(`testfixtures: could not read file "%s": %w`, fixture.path, err)
 		}

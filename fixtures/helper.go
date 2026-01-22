@@ -6,7 +6,6 @@ import (
 )
 
 type Helper interface {
-	init(db *sql.DB) error
 	quoteKeyword(str string) string
 	databaseName(q *sql.DB) (string, error)
 	disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) error

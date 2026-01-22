@@ -4,20 +4,20 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.21]
+        go-version: [1.23]
     runs-on: ubuntu-latest
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_PASSWORD: 123456
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
       postgres:
         image: postgres:17
         env:
-          POSTGRES_PASSWORD: root
+          POSTGRES_PASSWORD: 123456
         ports:
           - 5432:5432
         options: >-
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Set up Golang ${{ matrix.go-version }}
-        uses: actions/setup-go@v1
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
         id: go

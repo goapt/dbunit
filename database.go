@@ -10,17 +10,13 @@ import (
 )
 
 var (
-	defaultTestDSN       = "root:123456@tcp(127.0.0.1:3306)/"
-	id             int32 = 0
+	defaultTestDSN = "root:123456@tcp(127.0.0.1:3306)/"
+	id             atomic.Int32
 )
 
 func init() {
 	if os.Getenv("DRONE") == "true" {
 		SetDatabase("root:123456@tcp(database:3306)/")
-	}
-
-	if os.Getenv("CI") == "true" {
-		SetDatabase("root:root@tcp(127.0.0.1:3306)/")
 	}
 }
 
@@ -37,8 +33,8 @@ type database struct {
 }
 
 func newDatabase(schema string) *database {
-	atomic.AddInt32(&id, 1)
-	name := "test_" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), id)
+	id.Add(1)
+	name := "test_" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), id.Load())
 	return newDatabaseWithName(name, schema)
 }
 

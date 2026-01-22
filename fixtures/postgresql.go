@@ -8,11 +8,6 @@ import (
 )
 
 type PostgreSQL struct {
-	tables []string
-}
-
-func (h *PostgreSQL) init(db *sql.DB) error {
-	return nil
 }
 
 func (*PostgreSQL) quoteKeyword(str string) string {

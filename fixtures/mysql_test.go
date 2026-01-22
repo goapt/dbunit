@@ -37,18 +37,10 @@ func Test_mySQL_databaseName(t *testing.T) {
 	db, err := sql.Open("mysql", mysqlDSN)
 	assert.NoError(t, err)
 	m := &MySQL{}
-	err = m.init(db)
 	assert.NoError(t, err)
 	s, err := m.databaseName(db)
-	assert.Equal(t, "mysql", s)
-}
-
-func Test_mySQL_tableNames(t *testing.T) {
-	db, err := sql.Open("mysql", mysqlDSN)
 	assert.NoError(t, err)
-	m := &MySQL{}
-	s, err := m.tableNames(db)
-	assert.True(t, len(s) > 0)
+	assert.Equal(t, "mysql", s)
 }
 
 func Test_mySQL_disableReferentialIntegrity(t *testing.T) {

@@ -10,17 +10,6 @@ import (
 type loadFunction func(tx *sql.Tx) error
 
 type MySQL struct {
-	tables []string
-}
-
-func (h *MySQL) init(db *sql.DB) error {
-	var err error
-	h.tables, err = h.tableNames(db)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (*MySQL) quoteKeyword(str string) string {
@@ -31,39 +20,6 @@ func (*MySQL) databaseName(q *sql.DB) (string, error) {
 	var dbName string
 	err := q.QueryRow("SELECT DATABASE()").Scan(&dbName)
 	return dbName, err
-}
-
-func (h *MySQL) tableNames(q *sql.DB) ([]string, error) {
-	query := `
-		SELECT table_name
-		FROM information_schema.tables
-		WHERE table_schema = ?
-		  AND table_type = 'BASE TABLE';
-	`
-	dbName, err := h.databaseName(q)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := q.Query(query, dbName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tables []string
-	for rows.Next() {
-		var table string
-		if err = rows.Scan(&table); err != nil {
-			return nil, err
-		}
-		tables = append(tables, table)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	return tables, nil
-
 }
 
 func (h *MySQL) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
