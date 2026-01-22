@@ -7,12 +7,12 @@ var Debug = false
 type log struct{}
 
 func (l *log) Print(s string) {
-	fmt.Println(fmt.Sprintf("🐳 %s", s))
+	fmt.Printf("🐳 %s\n", s)
 }
 
 func (l *log) Debug(s string) {
 	if Debug {
-		fmt.Println(fmt.Sprintf("[DEBUG] %s", s))
+		fmt.Printf("[DEBUG] %s\n", s)
 	}
 }
 

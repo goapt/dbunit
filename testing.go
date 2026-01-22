@@ -15,8 +15,8 @@ type Testing struct {
 	schema string
 }
 
-func NewTest(schema string) *Testing {
-	tdb := newDatabase(schema)
+func NewTest(dsn string, schema string) *Testing {
+	tdb := newDatabase(dsn, schema)
 
 	// Open connection to the test database.
 	// Do NOT import fixtures in a production database!
@@ -42,6 +42,9 @@ func (d *Testing) Schema() string {
 }
 
 func (d *Testing) Drop() {
+	if d.db != nil {
+		_ = d.db.Close()
+	}
 	err := d.tdb.Drop()
 	if err != nil {
 		panic("drop database error " + err.Error())

@@ -3,27 +3,18 @@ package dbunit
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 )
 
+type DriverName string
+
 var (
-	defaultTestDSN = "root:123456@tcp(127.0.0.1:3306)/"
 	id             atomic.Int32
+	MySQLDriver    DriverName = "mysql"
+	PostgresDriver DriverName = "postgres"
 )
-
-func init() {
-	if os.Getenv("DRONE") == "true" {
-		SetDatabase("root:123456@tcp(database:3306)/")
-	}
-}
-
-// SetDatabase 配置单元测试的数据库DSN
-func SetDatabase(dsn string) {
-	defaultTestDSN = dsn
-}
 
 type database struct {
 	Name    string
@@ -32,15 +23,15 @@ type database struct {
 	adapter DBAdapter
 }
 
-func newDatabase(schema string) *database {
-	id.Add(1)
-	name := "test_" + fmt.Sprintf("%d_%d", time.Now().UnixNano(), id.Load())
-	return newDatabaseWithName(name, schema)
+func newDatabase(dsn string, schema string) *database {
+	newID := id.Add(1)
+	name := fmt.Sprintf("test_%d_%d", time.Now().UnixNano(), newID)
+	return newDatabaseWithName(dsn, name, schema)
 }
 
-func newDatabaseWithName(name string, schema string) *database {
+func newDatabaseWithName(dsn string, name string, schema string) *database {
 	var adapter DBAdapter
-	if strings.HasPrefix(defaultTestDSN, "postgres") {
+	if strings.HasPrefix(dsn, string(PostgresDriver)) {
 		adapter = &PostgresAdapter{}
 	} else {
 		adapter = &MySQLAdapter{}
@@ -48,7 +39,7 @@ func newDatabaseWithName(name string, schema string) *database {
 
 	db := &database{
 		Name:    name,
-		source:  defaultTestDSN,
+		source:  dsn,
 		adapter: adapter,
 	}
 	err := db.connection()
@@ -70,7 +61,7 @@ func newDatabaseWithName(name string, schema string) *database {
 }
 
 func (d *database) DSN() string {
-	return d.adapter.DSN(defaultTestDSN, d.Name)
+	return d.adapter.DSN(d.source, d.Name)
 }
 
 func (d *database) connection() error {

@@ -44,31 +44,67 @@ func parseTableName(query string) string {
 	return strings.Trim(strings.TrimSpace(s[0]), "`")
 }
 
-func getPrimaryKey(db *sql.DB, query string) (string, error) {
+func getPrimaryKey(db *sql.DB, driver DriverName, query string) (string, error) {
 	tableName := parseTableName(query)
 
 	if tableName == "" {
 		return "", errors.New("sql parse table name is empty")
 	}
 
-	row := db.QueryRow("select database();")
-	var dbname string
-	err := row.Scan(&dbname)
-	if err != nil {
-		return "", fmt.Errorf("get database name error %w", err)
+	var pk string
+
+	if driver == MySQLDriver {
+		var dbname string
+		if err := db.QueryRow("select database()").Scan(&dbname); err != nil {
+			return "", err
+		}
+
+		row := db.QueryRow("select column_name from information_schema.key_column_usage where constraint_name = 'PRIMARY' and table_schema = ? and table_name = ?", dbname, tableName)
+		err := row.Scan(&pk)
+		if err != nil {
+			return "", err
+		}
+
+		return pk, nil
 	}
 
-	row = db.QueryRow("select column_name from information_schema.key_column_usage where constraint_name = 'PRIMARY' and table_schema = ? and table_name = ?", dbname, tableName)
-	var pk string
-	err = row.Scan(&pk)
-	if err != nil {
-		return "", err
+	if driver == PostgresDriver {
+		// Postgres primary key query
+		// Using information_schema to be consistent, but need to handle schema (defaulting to public)
+		// Or assume public.
+		// A more robust way in postgres:
+		q := `
+			SELECT kcu.column_name
+			FROM information_schema.key_column_usage kcu
+			JOIN information_schema.table_constraints tc
+			  ON kcu.constraint_name = tc.constraint_name
+			  AND kcu.table_schema = tc.table_schema
+			WHERE kcu.table_name = $1
+			  AND tc.constraint_type = 'PRIMARY KEY'
+			LIMIT 1
+		`
+		row := db.QueryRow(q, tableName)
+		err := row.Scan(&pk)
+		if err != nil {
+			return "", err
+		}
+		return pk, nil
 	}
-	return pk, nil
+
+	return "", fmt.Errorf("unsupported database or failed to get primary key")
 }
 
 func Dump(db *sql.DB, filePath, query string, args ...any) ([]map[string]any, error) {
-	pk, err := getPrimaryKey(db, query)
+	// Check if Postgres to convert placeholders
+	var isPostgres bool
+	var dbname string
+	var driver = MySQLDriver
+	if err := db.QueryRow("select current_database()").Scan(&dbname); err == nil {
+		isPostgres = true
+		driver = PostgresDriver
+	}
+
+	pk, err := getPrimaryKey(db, driver, query)
 	if err != nil {
 		return nil, fmt.Errorf("get primary key error %w", err)
 	}
@@ -76,6 +112,10 @@ func Dump(db *sql.DB, filePath, query string, args ...any) ([]map[string]any, er
 	query, newArgs, err := inReplace(query, args...)
 	if err != nil {
 		return nil, err
+	}
+
+	if isPostgres {
+		query = convertToPostgresPlaceholders(query)
 	}
 
 	stmt, err := db.Prepare(query)
@@ -138,7 +178,11 @@ func Dump(db *sql.DB, filePath, query string, args ...any) ([]map[string]any, er
 		if !isDuplicate(oldData, entryMap2, pk) {
 			fixturesSlice = append(fixturesSlice, entryMap)
 		} else {
-			fmt.Println(fmt.Sprintf("[duplicate] %s ignore primary key:%v", filePath, entryMap2[pk]))
+			if pk != "" {
+				fmt.Println(fmt.Sprintf("[duplicate] %s ignore primary key:%v", filePath, entryMap2[pk]))
+			} else {
+				fmt.Println(fmt.Sprintf("[duplicate] %s ignore primary key", filePath))
+			}
 		}
 		fixtureMaps = append(fixtureMaps, entryMap2)
 	}
@@ -152,6 +196,23 @@ func Dump(db *sql.DB, filePath, query string, args ...any) ([]map[string]any, er
 
 	err = writeYml(filePath, fixturesSlice, len(oldData))
 	return fixtureMaps, err
+}
+
+func convertToPostgresPlaceholders(query string) string {
+	// Simple replacement of ? with $1, $2, etc.
+	// This assumes that ? are only used as placeholders and not in strings.
+	// A robust parser is needed for perfect safety, but simple replacement is common in simple helpers.
+	count := 0
+	var buf strings.Builder
+	for _, char := range query {
+		if char == '?' {
+			count++
+			buf.WriteString(fmt.Sprintf("$%d", count))
+		} else {
+			buf.WriteRune(char)
+		}
+	}
+	return buf.String()
 }
 
 func writeYml(filePath string, fixtures []yaml.MapSlice, oldlen int) error {

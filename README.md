@@ -1,4 +1,5 @@
 # 数据库单元测试辅助
+
 <a href="https://github.com/goapt/dbunit/actions"><img src="https://github.com/goapt/dbunit/workflows/build/badge.svg" alt="Build Status"></a>
 <a href="https://codecov.io/gh/goapt/dbunit"><img src="https://codecov.io/gh/goapt/dbunit/branch/master/graph/badge.svg" alt="codecov"></a>
 <a href="https://goreportcard.com/report/github.com/goapt/dbunit"><img src="https://goreportcard.com/badge/github.com/goapt/dbunit" alt="Go Report Card
@@ -15,13 +16,14 @@ go get github.com/goapt/dbunit
 1、单数据库自动辅助测试函数
 
 ```go
-dbunit.Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+dsn := "root:123456@tcp(127.0.0.1:3306)/"
+dbunit.Run(t, dsn, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
     row := db.QueryRow("select email from users where id = 1")
     var email string
     if err := row.Scan(&email); err != nil {
         t.Fatal(err)
     }
-    
+
     if email != "test@test.cn" {
         t.Fatalf("user mismatch want %s,but get %s", "test@test.cn", email)
     }
@@ -33,17 +35,24 @@ dbunit.Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
 2、多数据库创建
 
 ```go
+dsn := "root:123456@tcp(127.0.0.1:3306)/"
 dbunit.New(t, func(d *DBUnit) {
-    db := d.NewDatabase("testdata/schema.sql","testdata/fixtures/users.yml")
+    db := d.NewDatabase(dsn, "testdata/schema.sql","testdata/fixtures/users.yml")
     // more database
-    db2 = d.NewDatabase("testdata/schema2.sql")
+    db2 = d.NewDatabase(dsn, "testdata/schema2.sql")
     .....
 })
 ```
 
+## 支持数据库
+
+- MySQL
+- PostgreSQL (driver: pgx)
+
 ## 从测试库导出测试数据文件
 
 ### 使用脚本导出数据
+
 ```go
 db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", os.Getenv("DEV_DATABASE_USERNAME"), os.Getenv("DEV_DATABASE_PASSWORD"), os.Getenv("DEV_DATABASE_HOST"), "example")+"?charset=utf8&parseTime=True&loc=Asia%2FShanghai")
 if err != nil {
@@ -67,8 +76,8 @@ if err != nil {
 
 > 如果导出的数据已经在数据集文件中存在，则会忽略，判断依据为主键一致
 
-
 ### 导出测试集
+
 你可以在参看 `testdata/fixture.go` 脚本编写测试集导出脚本
 
 ```go
@@ -84,21 +93,20 @@ if err != nil {
 ### 和其他ORM配合使用
 
 ```go
+dsn := "root:123456@tcp(127.0.0.1:3306)/"
 dbunit.New(t, func(d *DBUnit) {
-    db := d.NewDatabase("testdata/schema.sql","testdata/fixtures/users.yml")
+    db := d.NewDatabase(dsn, "testdata/schema.sql","testdata/fixtures/users.yml")
 
     gormDB, err := gorm.Open(mysql.New(mysql.Config{Conn: db}))
 })
 ```
 
-
 ## 关于fixture
 
 当数据中需要动态数据，比如时间，可以参考如下做法，或者贡献你要的templateFunc
+
 ```yaml
 - id: 1
-  created_at: {{now}}
-  updated_at: {{now}}
+  created_at: { { now } }
+  updated_at: { { now } }
 ```
-
-
