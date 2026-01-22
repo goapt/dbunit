@@ -6,7 +6,7 @@ import (
 )
 
 func TestDumpSQL(t *testing.T) {
-	Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+	Run(t, "testdata/schema-mysql.sql", func(t *testing.T, db *sql.DB) {
 		data, err := Dump(db, "testdata/fixtures/documents.yml", "select * from documents limit 10")
 		if err != nil {
 			t.Fatal("dump documents error:", err)
@@ -27,7 +27,7 @@ func TestDumpSQL(t *testing.T) {
 }
 
 func Test_getPrimaryKey(t *testing.T) {
-	Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+	Run(t, "testdata/schema-mysql.sql", func(t *testing.T, db *sql.DB) {
 		pk, err := getPrimaryKey(db, "select * from users limit 1")
 
 		if err != nil {

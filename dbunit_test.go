@@ -9,7 +9,7 @@ import (
 
 func TestRun(t *testing.T) {
 	t.Run("default fixtures", func(t *testing.T) {
-		Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+		Run(t, "testdata/schema-mysql.sql", func(t *testing.T, db *sql.DB) {
 			row := db.QueryRow("select email from users where id = 1")
 			var email string
 			if err := row.Scan(&email); err != nil {
@@ -23,7 +23,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("select fixtures", func(t *testing.T) {
-		Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+		Run(t, "testdata/schema-mysql.sql", func(t *testing.T, db *sql.DB) {
 			row := db.QueryRow("select email from users where id = 1")
 			var email string
 			if err := row.Scan(&email); err != sql.ErrNoRows {
@@ -33,7 +33,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("custom fixtures", func(t *testing.T) {
-		Run(t, "testdata/schema.sql", func(t *testing.T, db *sql.DB) {
+		Run(t, "testdata/schema-mysql.sql", func(t *testing.T, db *sql.DB) {
 			var ct int
 			err := db.QueryRow("select count(1) from custom").Scan(&ct)
 
@@ -50,9 +50,9 @@ func TestRun(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	New(t, func(d *DBUnit) {
-		db := d.NewDatabase("testdata/schema.sql", "testdata/fixtures/users.yml")
+		db := d.NewDatabase("testdata/schema-mysql.sql", "testdata/fixtures/users.yml")
 		// more database
-		_ = d.NewDatabase("testdata/schema.sql")
+		_ = d.NewDatabase("testdata/schema-mysql.sql")
 		row := db.QueryRow("select email from users where id = 1")
 		var email string
 		if err := row.Scan(&email); err != nil {
@@ -67,7 +67,7 @@ func TestNew(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	// SetDatabase("root:123456@tcp(127.0.0.1:33306)/")
-	test := NewTest("testdata/schema.sql")
+	test := NewTest("testdata/schema-mysql.sql")
 	t.Cleanup(func() {
 		test.Drop()
 	})

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -17,7 +16,7 @@ import (
 // Loader is the responsible to loading fixtures.
 type Loader struct {
 	db            *sql.DB
-	helper        *mySQL
+	helper        Helper
 	fixturesFiles []*fixtureFile
 
 	skipTestDatabaseCheck bool
@@ -28,7 +27,7 @@ type Loader struct {
 
 type insertSQL struct {
 	sql    string
-	params []interface{}
+	params []any
 }
 
 var (
@@ -41,7 +40,7 @@ var (
 func New(options ...func(*Loader) error) (*Loader, error) {
 	l := &Loader{
 		template: NewTemplate(),
-		helper:   &mySQL{},
+		helper:   &MySQL{}, // Default to MySQL
 	}
 
 	for _, option := range options {
@@ -68,6 +67,21 @@ func New(options ...func(*Loader) error) (*Loader, error) {
 func Database(db *sql.DB) func(*Loader) error {
 	return func(l *Loader) error {
 		l.db = db
+		return nil
+	}
+}
+
+// Dialect sets the database dialect (mysql or postgresql)
+func Dialect(dialect string) func(*Loader) error {
+	return func(l *Loader) error {
+		switch dialect {
+		case "postgres", "postgresql", "pgx":
+			l.helper = &PostgreSQL{}
+		case "mysql":
+			l.helper = &MySQL{}
+		default:
+			return fmt.Errorf("unsupported dialect: %s", dialect)
+		}
 		return nil
 	}
 }
@@ -119,9 +133,10 @@ func (l *Loader) EnsureTestDatabase() error {
 }
 
 // Load wipes and after load all fixtures in the database.
-//     if err := fixtures.Load(); err != nil {
-//             ...
-//     }
+//
+//	if err := fixtures.Load(); err != nil {
+//	        ...
+//	}
 func (l *Loader) Load() error {
 	if !l.skipTestDatabaseCheck {
 		if err := l.EnsureTestDatabase(); err != nil {
@@ -129,6 +144,9 @@ func (l *Loader) Load() error {
 		}
 	}
 
+	// This is MySQL specific, maybe move to helper?
+	// But PG doesn't have strict sql_mode.
+	// We can ignore error or move to helper.
 	_, _ = l.db.Exec("set @@sql_mode=''")
 
 	err := l.helper.disableReferentialIntegrity(l.db, func(tx *sql.Tx) error {
@@ -153,7 +171,7 @@ type InsertError struct {
 	Err    error
 	File   string
 	SQL    string
-	Params []interface{}
+	Params []any
 }
 
 func (e *InsertError) Error() string {
@@ -168,7 +186,7 @@ func (e *InsertError) Error() string {
 
 func (l *Loader) buildInsertSQLs() error {
 	for _, f := range l.fixturesFiles {
-		var records []map[string]interface{}
+		var records []map[string]any
 		if err := yaml.Unmarshal(f.content, &records); err != nil {
 			return fmt.Errorf("testfixtures: could not unmarshal YAML: %w", err)
 		}
@@ -177,44 +195,18 @@ func (l *Loader) buildInsertSQLs() error {
 			continue
 		}
 
-		sqlColumnsQuote := make([]string, 0)
-		sqlValuesBind := make([]string, 0)
-		for k, _ := range records[0] {
-			sqlColumnsQuote = append(sqlColumnsQuote, l.helper.quoteKeyword(k))
-			sqlValuesBind = append(sqlValuesBind, "?")
+		var columns []string
+		// Get columns from the first record
+		for k := range records[0] {
+			columns = append(columns, k)
 		}
-		sqlBind := fmt.Sprintf("(%s)", strings.Join(sqlValuesBind, ", "))
-		sqlBinds := make([]string, len(records))
-		for k, _ := range records {
-			sqlBinds[k] = sqlBind
-		}
-		sort.Strings(sqlColumnsQuote)
-		var (
-			sqlStr = fmt.Sprintf(
-				"REPLACE INTO %s(%s) VALUES %s",
-				l.helper.quoteKeyword(f.fileNameWithoutExtension()),
-				strings.Join(sqlColumnsQuote, ", "),
-				strings.Join(sqlBinds, ", "),
-			)
-			sqlValues = make([]interface{}, 0)
-		)
+		sort.Strings(columns)
 
-		for _, record := range records {
-			for _, k := range sqlColumnsQuote {
-				k = strings.Trim(k, "`")
-				switch v := record[k].(type) {
-				case string:
-					if t, err := tryStrToDate(l.location, v); err == nil {
-						record[k] = t
-					}
-				case []interface{}, map[interface{}]interface{}:
-					record[k] = recursiveToJSON(v)
-				}
-				sqlValues = append(sqlValues, record[k])
-			}
+		insertSQL, err := l.helper.buildInsertSQL(f.fileNameWithoutExtension(), columns, records, l.location)
+		if err != nil {
+			return err
 		}
-
-		f.insertSQL = insertSQL{sqlStr, sqlValues}
+		f.insertSQL = insertSQL
 	}
 
 	return nil

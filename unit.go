@@ -10,8 +10,8 @@ import (
 	"github.com/goapt/dbunit/fixtures"
 )
 
-func PluckWithFixture(filePath string, key string) []interface{} {
-	var data = make([]map[string]interface{}, 0)
+func PluckWithFixture(filePath string, key string) []any {
+	var data = make([]map[string]any, 0)
 	if !isExists(filePath) {
 		panic("file not exists:" + filePath)
 	}
@@ -29,16 +29,16 @@ func PluckWithFixture(filePath string, key string) []interface{} {
 	return Pluck(data, key)
 }
 
-func Pluck(data []map[string]interface{}, key string) []interface{} {
-	s := make([]interface{}, len(data))
+func Pluck(data []map[string]any, key string) []any {
+	s := make([]any, len(data))
 	for k, v := range data {
 		s[k] = v[key]
 	}
 	return unique(s)
 }
 
-func unique(s []interface{}) []interface{} {
-	ns := make([]interface{}, 0)
+func unique(s []any) []any {
+	ns := make([]any, 0)
 	for _, v := range s {
 		isDuplicate := false
 		for _, nv := range ns {

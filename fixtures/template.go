@@ -11,7 +11,7 @@ type Template struct {
 	templateLeftDelim  string
 	templateRightDelim string
 	templateOptions    []string
-	templateData       interface{}
+	templateData       any
 }
 
 func NewTemplate() *Template {
@@ -22,7 +22,7 @@ func NewTemplate() *Template {
 	}
 
 	l.templateFuncs = make(template.FuncMap)
-	l.templateFuncs["now"] = func(args ...interface{}) string {
+	l.templateFuncs["now"] = func(args ...any) string {
 		if len(args) == 0 {
 			return time.Now().Format(time.RFC3339)
 		}

@@ -8,26 +8,26 @@ import (
 
 func Test_recursiveToJSON(t *testing.T) {
 	t.Run("map", func(t *testing.T) {
-		data := make(map[interface{}]interface{}, 0)
+		data := make(map[any]any, 0)
 		data["user_id"] = 1
 		data["name"] = "test"
 		ret := recursiveToJSON(data)
 
-		assert.Equal(t, jsonMap(map[string]interface{}{
+		assert.Equal(t, jsonMap(map[string]any{
 			"user_id": 1,
 			"name":    "test",
 		}), ret)
 	})
 
 	t.Run("slice", func(t *testing.T) {
-		data := make([]interface{}, 0)
-		data = append(data, map[interface{}]interface{}{
+		data := make([]any, 0)
+		data = append(data, map[any]any{
 			"user_id": 1,
 			"name":    "test",
 		})
 		ret := recursiveToJSON(data)
 
-		exp := jsonMap(map[string]interface{}{
+		exp := jsonMap(map[string]any{
 			"user_id": 1,
 			"name":    "test",
 		})

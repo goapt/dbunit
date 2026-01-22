@@ -3,17 +3,15 @@ package dbunit
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"regexp"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
 var (
-	defaultTestDSN         = "root:123456@tcp(127.0.0.1:3306)/"
-	createTableRegex       = regexp.MustCompile(`(?isU)CREATE TABLE\s+.*;`)
-	id               int32 = 0
+	defaultTestDSN       = "root:123456@tcp(127.0.0.1:3306)/"
+	id             int32 = 0
 )
 
 func init() {
@@ -32,9 +30,10 @@ func SetDatabase(dsn string) {
 }
 
 type database struct {
-	Name   string
-	source string
-	db     *sql.DB
+	Name    string
+	source  string
+	db      *sql.DB
+	adapter DBAdapter
 }
 
 func newDatabase(schema string) *database {
@@ -44,16 +43,27 @@ func newDatabase(schema string) *database {
 }
 
 func newDatabaseWithName(name string, schema string) *database {
-	db := &database{Name: name, source: defaultTestDSN}
+	var adapter DBAdapter
+	if strings.HasPrefix(defaultTestDSN, "postgres") {
+		adapter = &PostgresAdapter{}
+	} else {
+		adapter = &MySQLAdapter{}
+	}
+
+	db := &database{
+		Name:    name,
+		source:  defaultTestDSN,
+		adapter: adapter,
+	}
 	err := db.connection()
 
 	if err != nil {
-		panic("test mysql connection fail," + err.Error())
+		panic("test database connection fail," + err.Error())
 	}
 
 	err = db.create()
 	if err != nil {
-		panic("test mysql create database fail," + err.Error())
+		panic("test database create database fail," + err.Error())
 	}
 
 	err = db.Import(schema)
@@ -64,11 +74,11 @@ func newDatabaseWithName(name string, schema string) *database {
 }
 
 func (d *database) DSN() string {
-	return defaultTestDSN + d.Name + "?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+	return d.adapter.DSN(defaultTestDSN, d.Name)
 }
 
 func (d *database) connection() error {
-	db, err := sql.Open("mysql", d.source)
+	db, err := d.adapter.Open(d.source)
 	if err != nil {
 		return err
 	}
@@ -77,9 +87,7 @@ func (d *database) connection() error {
 }
 
 func (d *database) Drop() error {
-	query := fmt.Sprintf("DROP DATABASE IF EXISTS %s", d.Name)
-	defaultLog.Print(query)
-	_, err := d.db.Exec(query)
+	err := d.adapter.DropDatabase(d.db, d.Name)
 	if err != nil {
 		return err
 	}
@@ -88,42 +96,16 @@ func (d *database) Drop() error {
 }
 
 func (d *database) create() error {
-	query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", d.Name)
-	defaultLog.Print(query)
-	_, err := d.db.Exec(query)
-	return err
+	return d.adapter.CreateDatabase(d.db, d.Name)
 }
 
 func (d *database) Import(schema string) error {
-
-	if !isExists(schema) {
-		return fmt.Errorf("sql file not found:%s", schema)
-	}
-
-	content, err := ioutil.ReadFile(schema)
+	// Import schema needs to connect to the new database
+	db, err := d.adapter.Open(d.DSN())
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
-	querys := createTableRegex.FindAllString(string(content), -1)
-
-	var results []sql.Result
-
-	db, err := sql.Open("mysql", d.DSN())
-	if err != nil {
-		return err
-	}
-
-	defaultLog.Print(fmt.Sprintf("Import schema:%s", schema))
-	for _, query := range querys {
-		defaultLog.Debug(query)
-		if len(query) > 0 {
-			result, err := db.Exec(query)
-			results = append(results, result)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return d.adapter.ImportSchema(db, schema)
 }

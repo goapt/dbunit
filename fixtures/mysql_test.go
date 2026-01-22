@@ -28,7 +28,7 @@ func init() {
 }
 
 func Test_mySQL_quoteKeyword(t *testing.T) {
-	m := &mySQL{}
+	m := &MySQL{}
 	k := m.quoteKeyword("status")
 	assert.Equal(t, "`status`", k)
 }
@@ -36,7 +36,7 @@ func Test_mySQL_quoteKeyword(t *testing.T) {
 func Test_mySQL_databaseName(t *testing.T) {
 	db, err := sql.Open("mysql", mysqlDSN)
 	assert.NoError(t, err)
-	m := &mySQL{}
+	m := &MySQL{}
 	err = m.init(db)
 	assert.NoError(t, err)
 	s, err := m.databaseName(db)
@@ -46,7 +46,7 @@ func Test_mySQL_databaseName(t *testing.T) {
 func Test_mySQL_tableNames(t *testing.T) {
 	db, err := sql.Open("mysql", mysqlDSN)
 	assert.NoError(t, err)
-	m := &mySQL{}
+	m := &MySQL{}
 	s, err := m.tableNames(db)
 	assert.True(t, len(s) > 0)
 }
@@ -54,7 +54,7 @@ func Test_mySQL_tableNames(t *testing.T) {
 func Test_mySQL_disableReferentialIntegrity(t *testing.T) {
 	db, err := sql.Open("mysql", mysqlDSN)
 	assert.NoError(t, err)
-	m := &mySQL{}
+	m := &MySQL{}
 	err = m.disableReferentialIntegrity(db, func(tx *sql.Tx) error {
 		rows, err := tx.Query("select * from user limit 1")
 		defer rows.Close()

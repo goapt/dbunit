@@ -21,9 +21,9 @@ func NewTest(schema string) *Testing {
 	// Open connection to the test database.
 	// Do NOT import fixtures in a production database!
 	// Existing data would be deleted.
-	db, err := sql.Open("mysql", tdb.DSN())
+	db, err := tdb.adapter.Open(tdb.DSN())
 	if err != nil {
-		panic("test mysql open fail " + err.Error())
+		panic("test database open fail " + err.Error())
 	}
 
 	return &Testing{
@@ -51,6 +51,7 @@ func (d *Testing) Drop() {
 func (d *Testing) Load(files ...string) {
 	options := make([]func(*fixtures.Loader) error, 0)
 	options = append(options, fixtures.Database(d.db)) // You database connection
+	options = append(options, fixtures.Dialect(d.tdb.adapter.DriverName()))
 
 	fs := make([]string, 0)
 	for _, file := range files {
